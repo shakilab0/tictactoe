@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:lottie/lottie.dart';
 
 import 'package:tictactoe/config/app_colors.dart';
 import 'package:tictactoe/config/app_text_style.dart';
@@ -29,36 +30,56 @@ class TicTacToePage extends GetView<TicTacToeController> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: [
-              const SizedBox(height: 6),
-              _scoreboard(),
-              const SizedBox(height: 6),
-              Obx(() => AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: Text(
-                  controller.statusMessage.value,
-                  key: ValueKey(controller.statusMessage.value),
-                  style: textStyleStatus(),
-                ),
-              )),
-              const SizedBox(height: 6),
-              _board(),
-              const SizedBox(height: 16),
-              _modeSelector(),
-              const SizedBox(height: 12),
-              Obx(() => controller.mode.value == GameMode.onePlayer
-                  ? _difficultySelector()
-                  : const SizedBox.shrink()),
-              const Spacer(),
-              _newGameButton(),
-              const SizedBox(height: 12),
-            ],
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: [
+                  const SizedBox(height: 6),
+                  _scoreboard(),
+                  const SizedBox(height: 6),
+                  Obx(() => AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: Text(
+                      controller.statusMessage.value,
+                      key: ValueKey(controller.statusMessage.value),
+                      style: textStyleStatus(),
+                    ),
+                  )),
+                  const SizedBox(height: 6),
+                  _board(),
+                  const SizedBox(height: 16),
+                  _modeSelector(),
+                  const SizedBox(height: 12),
+                  Obx(() => controller.mode.value == GameMode.onePlayer
+                      ? _difficultySelector()
+                      : const SizedBox.shrink()),
+                  const Spacer(),
+                  _newGameButton(),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
           ),
-        ),
+          Obx(() => controller.showWinAnimation.value
+              ? Positioned.fill(child: _winAnimationOverlay())
+              : const SizedBox.shrink()),
+        ],
+      ),
+    );
+  }
+
+  Widget _winAnimationOverlay() {
+    return IgnorePointer(
+      child: Lottie.asset(
+        TicTacToeController.winAnimationAsset,
+        repeat: false,
+        fit: BoxFit.cover,
+        onLoaded: (composition) {
+          Future.delayed(composition.duration, controller.onWinAnimationComplete);
+        },
       ),
     );
   }

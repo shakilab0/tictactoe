@@ -20,8 +20,11 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
   final RxList<String> board = List.filled(9, '', growable: true).obs;
   final RxString currentPlayer = 'X'.obs;
   final RxBool gameOver = false.obs;
+  final RxBool showWinAnimation = false.obs;
   final RxString statusMessage = ''.obs;
   final RxList<int> winningLine = <int>[].obs;
+
+  static const String winAnimationAsset = 'assets/animations/all_complete.json';
 
   // ── Settings ────────────────────────────────────────────────────────
   final Rx<GameMode> mode = GameMode.onePlayer.obs;
@@ -97,6 +100,7 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
     board.assignAll(List.filled(9, ''));
     currentPlayer.value = 'X';
     gameOver.value = false;
+    showWinAnimation.value = false;
     winningLine.clear();
     _moveCount = 0;
     _gameStartTime = DateTime.now();
@@ -230,6 +234,7 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
     gameOver.value = true;
     _gameInProgress = false;
     if (line != null) winningLine.assignAll(line);
+    showWinAnimation.value = _shouldCelebrateWin(winner);
 
     final durationSeconds = DateTime.now().difference(_gameStartTime).inSeconds;
     final bool onePlayer = mode.value == GameMode.onePlayer;
@@ -300,6 +305,16 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
     debugPrint('TTT ⚙️ difficulty -> ${d.name}');
     analytics.difficultyChanged(to: d.name);
     startNewGame();
+  }
+
+  void onWinAnimationComplete() {
+    showWinAnimation.value = false;
+  }
+
+  bool _shouldCelebrateWin(String winner) {
+    if (winner.isEmpty) return false;
+    if (mode.value == GameMode.onePlayer) return winner == _you;
+    return true;
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────

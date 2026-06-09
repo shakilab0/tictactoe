@@ -14,8 +14,8 @@ Future<void> main() async {
   await Hive.openBox<GameStatsModel>(GameStatsModel.boxName);
 
   // ── 2. PostHog (analytics) ──────────────────────────────────────────
-  final config = PostHogConfig('<YOUR_POSTHOG_PROJECT_API_KEY>');
-  config.host = 'https://us.posthog.com/';
+  final config = PostHogConfig('phc_wcVYoDKxaEskd2QpRE7vPw4yA2vA6AfUcgvXBBSfh34F');
+  config.host = 'https://us.i.posthog.com';
   config.debug = true; // turn off in production
   await Posthog().setup(config);
 

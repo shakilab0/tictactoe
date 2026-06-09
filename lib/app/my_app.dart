@@ -14,9 +14,13 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        brightness: Brightness.dark,
         scaffoldBackgroundColor: AppColor.bg,
         fontFamily: 'monospace',
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColor.fg),
+        colorScheme: const ColorScheme.dark(
+          surface: AppColor.bg,
+          onSurface: AppColor.fg,
+        ),
       ),
       getPages: routes,
       initialRoute: AppRoutes.gamePage,

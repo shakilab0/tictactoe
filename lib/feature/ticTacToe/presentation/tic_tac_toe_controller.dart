@@ -43,6 +43,7 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
   static const String _cpu = 'O';
   final Random _random = Random();
   int _moveCount = 0;
+  int _moveGeneration = 0;
   bool _gameInProgress = false;
   DateTime _gameStartTime = DateTime.now();
   DateTime _sessionStartTime = DateTime.now();
@@ -55,6 +56,7 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
 
   String get leftLabel => mode.value == GameMode.onePlayer ? 'You' : 'Player X';
   String get rightLabel => mode.value == GameMode.onePlayer ? 'CPU' : 'Player O';
+  bool get canRematch => board.any((cell) => cell.isNotEmpty) || gameOver.value;
 
   @override
   void onInit() {
@@ -97,6 +99,7 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
 
   // ── Game flow ───────────────────────────────────────────────────────
   void startNewGame() {
+    _moveGeneration++;
     board.assignAll(List.filled(9, ''));
     currentPlayer.value = 'X';
     gameOver.value = false;
@@ -137,8 +140,12 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
     if (gameOver.value) return;
 
     if (mode.value == GameMode.onePlayer && currentPlayer.value == _cpu) {
+      final generation = _moveGeneration;
       debugPrint('TTT    🤖 scheduling computer move…');
-      Future.delayed(const Duration(milliseconds: 350), _computerMove);
+      Future.delayed(
+        const Duration(milliseconds: 350),
+        () => _computerMove(generation),
+      );
     }
   }
 
@@ -166,33 +173,59 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
     statusMessage.value = _turnMessage();
   }
 
-  void _computerMove() {
-    if (gameOver.value) return;
+  void _computerMove(int generation) {
+    if (generation != _moveGeneration || gameOver.value) return;
+    if (currentPlayer.value != _cpu) return;
+
     final move = _chooseComputerMove();
-    debugPrint('TTT    🤖 computer chose $move');
-    if (move != -1) _placeMark(move, _cpu);
+    debugPrint('TTT    🤖 computer chose $move (${difficulty.value.name})');
+    if (move == -1) return;
+
+    _placeMark(move, _cpu);
   }
 
   // ── AI ──────────────────────────────────────────────────────────────
   int _chooseComputerMove() {
     final empties = _emptyCells(board);
     if (empties.isEmpty) return -1;
+
+    final winMove = _findImmediateMove(_cpu);
+    final blockMove = _findImmediateMove(_you);
+
     switch (difficulty.value) {
       case Difficulty.easy:
+        if (winMove != null && _random.nextDouble() < 0.45) return winMove;
+        if (blockMove != null && _random.nextDouble() < 0.3) return blockMove;
         return empties[_random.nextInt(empties.length)];
+
       case Difficulty.medium:
+        if (winMove != null) return winMove;
+        if (blockMove != null) return blockMove;
         return _random.nextBool()
             ? _bestMove()
             : empties[_random.nextInt(empties.length)];
+
       case Difficulty.hard:
+        if (winMove != null) return winMove;
+        if (blockMove != null) return blockMove;
         return _bestMove();
     }
   }
 
+  int? _findImmediateMove(String player) {
+    for (final i in _emptyCells(board)) {
+      final trial = List<String>.from(board);
+      trial[i] = player;
+      if (_findWinningLine(trial, player) != null) return i;
+    }
+    return null;
+  }
+
   int _bestMove() {
     final b = List<String>.from(board);
-    int bestScore = -1000;
-    int move = -1;
+    var bestScore = -1000;
+    var move = -1;
+
     for (final i in _emptyCells(b)) {
       b[i] = _cpu;
       final score = _minimax(b, 0, false);
@@ -202,7 +235,11 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
         move = i;
       }
     }
-    return move;
+
+    if (move != -1) return move;
+
+    final empties = _emptyCells(board);
+    return empties.isEmpty ? -1 : empties[_random.nextInt(empties.length)];
   }
 
   int _minimax(List<String> b, int depth, bool isMaximizing) {

@@ -17,7 +17,7 @@ TextStyle textStyleStatus() => const TextStyle(
 TextStyle textStyleLabel() => TextStyle(
       fontSize: 13,
       fontWeight: FontWeight.w600,
-      color: Color.fromRGBO(26, 26, 26, 0.7), // AppColor.fg @ 70%
+      color: AppColor.fg.withOpacity(0.7),
     );
 
 TextStyle textStyleScore() => const TextStyle(
@@ -30,5 +30,5 @@ TextStyle textStyleButton() => const TextStyle(
       fontSize: 16,
       fontWeight: FontWeight.bold,
       letterSpacing: 2,
-      color: AppColor.bg,
+      color: AppColor.fg,
     );

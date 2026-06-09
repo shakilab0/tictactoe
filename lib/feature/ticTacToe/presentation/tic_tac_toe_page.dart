@@ -23,9 +23,20 @@ class TicTacToePage extends GetView<TicTacToeController> {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => _showStats(context),
-            child: const Padding(
-              padding: EdgeInsets.only(right: 22, left: 40, bottom: 6, top: 6),
-              child: Icon(Icons.bar_chart_rounded, color: AppColor.fg, size: 30),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 22, left: 40, bottom: 6, top: 6),
+              child: ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: AppColor.statsIconGradient,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ).createShader(bounds),
+                child: const Icon(
+                  Icons.bar_chart_rounded,
+                  color: AppColor.fg,
+                  size: 30,
+                ),
+              ),
             ),
           ),
         ],
@@ -89,8 +100,7 @@ class TicTacToePage extends GetView<TicTacToeController> {
     return Obx(() => Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColor.fg, width: 2),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         color: AppColor.cell,
       ),
       child: Row(
@@ -117,55 +127,54 @@ class TicTacToePage extends GetView<TicTacToeController> {
   }
 
   // ── Board ─────────────────────────────────────────────────────────────
-  //  Simple, bullet-proof: 9 cells, each draws its OWN inner grid lines
-  //  (right border for cols 0–1, bottom border for rows 0–1) → "#" look
-  //  with no outer box. No Stack/overlay on top, so taps always register.
+  static const double _cellGap = 10;
+  static const double _cellRadius = 22;
+
   Widget _board() {
     return AspectRatio(
       aspectRatio: 1,
       child: Obx(() => Column(
         children: List.generate(3, (row) {
           return Expanded(
-            child: Row(
-              children: List.generate(3, (col) {
-                final int index = row * 3 + col;
-                final String mark = controller.board[index];
-                final bool isWinning = controller.winningLine.contains(index);
-                return Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      debugPrint('TTT 👉 widget tap reached cell $index');
-                      controller.onCellTap(index);
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isWinning
-                            ? AppColor.accent.withOpacity(0.18)
-                            : Colors.transparent,
-                        border: Border(
-                          right: col < 2
-                              ? const BorderSide(color: AppColor.fg, width: 2)
-                              : BorderSide.none,
-                          bottom: row < 2
-                              ? const BorderSide(color: AppColor.fg, width: 2)
-                              : BorderSide.none,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: row < 2 ? _cellGap : 0),
+              child: Row(
+                children: List.generate(3, (col) {
+                  final int index = row * 3 + col;
+                  final String mark = controller.board[index];
+                  final bool isWinning = controller.winningLine.contains(index);
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: col < 2 ? _cellGap : 0),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          debugPrint('TTT 👉 widget tap reached cell $index');
+                          controller.onCellTap(index);
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          decoration: BoxDecoration(
+                            color: isWinning ? AppColor.accent : AppColor.cell,
+                            borderRadius: BorderRadius.circular(_cellRadius),
+                          ),
+                          alignment: Alignment.center,
+                          child: AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 150),
+                            style: TextStyle(
+                              fontSize: mark.isEmpty ? 0 : 56,
+                              fontWeight: FontWeight.bold,
+                              color: mark == 'X' ? AppColor.xColor : AppColor.oColor,
+                            ),
+                            child: Text(mark),
+                          ),
                         ),
-                      ),
-                      alignment: Alignment.center,
-                      child: AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 150),
-                        style: TextStyle(
-                          fontSize: mark.isEmpty ? 0 : 60,
-                          fontWeight: FontWeight.bold,
-                          color: mark == 'X' ? AppColor.xColor : AppColor.oColor,
-                        ),
-                        child: Text(mark),
                       ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                }),
+              ),
             ),
           );
         }),
@@ -178,10 +187,14 @@ class TicTacToePage extends GetView<TicTacToeController> {
     return Obx(() => Row(
       children: [
         _toggle('1 Player', controller.mode.value == GameMode.onePlayer,
-                () => controller.setMode(GameMode.onePlayer)),
+                () => controller.setMode(GameMode.onePlayer),
+                gradient: AppColor.onePlayerGradient,
+                icon: Icons.person_outline),
         const SizedBox(width: 10),
         _toggle('2 Players', controller.mode.value == GameMode.twoPlayer,
-                () => controller.setMode(GameMode.twoPlayer)),
+                () => controller.setMode(GameMode.twoPlayer),
+                gradient: AppColor.twoPlayerGradient,
+                icon: Icons.people_outline),
       ],
     ));
   }
@@ -190,18 +203,32 @@ class TicTacToePage extends GetView<TicTacToeController> {
     return Obx(() => Row(
       children: [
         _toggle('Easy', controller.difficulty.value == Difficulty.easy,
-                () => controller.setDifficulty(Difficulty.easy)),
+                () => controller.setDifficulty(Difficulty.easy),
+                gradient: AppColor.easyGradient,
+                selectedTextColor: AppColor.bg),
         const SizedBox(width: 8),
         _toggle('Medium', controller.difficulty.value == Difficulty.medium,
-                () => controller.setDifficulty(Difficulty.medium)),
+                () => controller.setDifficulty(Difficulty.medium),
+                gradient: AppColor.mediumGradient,
+                selectedTextColor: AppColor.bg),
         const SizedBox(width: 8),
         _toggle('Hard', controller.difficulty.value == Difficulty.hard,
-                () => controller.setDifficulty(Difficulty.hard)),
+                () => controller.setDifficulty(Difficulty.hard),
+                gradient: AppColor.hardGradient,
+                selectedTextColor: AppColor.bg),
       ],
     ));
   }
 
-  Widget _toggle(String label, bool selected, VoidCallback onTap) {
+  Widget _toggle(
+    String label,
+    bool selected,
+    VoidCallback onTap, {
+    required List<Color> gradient,
+    IconData? icon,
+    Color? selectedTextColor,
+  }) {
+    final selectedColor = selectedTextColor ?? AppColor.fg;
     return Expanded(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -212,18 +239,42 @@ class TicTacToePage extends GetView<TicTacToeController> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? AppColor.fg : Colors.transparent,
-            border: Border.all(color: AppColor.fg, width: 2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
-              color: selected ? AppColor.bg : AppColor.fg,
+            gradient: selected
+                ? LinearGradient(
+                    colors: gradient,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: selected ? null : Colors.transparent,
+            border: Border.all(
+              color: selected ? Colors.transparent : AppColor.fg.withOpacity(0.25),
+              width: 1.5,
             ),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 16,
+                  color: selected ? selectedColor : AppColor.fg.withOpacity(0.6),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                  color: selected ? selectedColor : AppColor.fg.withOpacity(0.6),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -231,22 +282,28 @@ class TicTacToePage extends GetView<TicTacToeController> {
   }
 
   Widget _newGameButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: controller.rematch,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: AppColor.fg,
-            borderRadius: BorderRadius.circular(8),
+    return Obx(() {
+      final enabled = controller.canRematch;
+      return Opacity(
+        opacity: enabled ? 1.0 : 0.35,
+        child: SizedBox(
+          width: double.infinity,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: enabled ? controller.rematch : null,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColor.cell,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text('↻  RESET', style: textStyleButton()),
+            ),
           ),
-          child: Text('↻  NEW GAME', style: textStyleButton()),
         ),
-      ),
-    );
+      );
+    });
   }
 
   void _showStats(BuildContext context) {
@@ -286,15 +343,15 @@ class TicTacToePage extends GetView<TicTacToeController> {
                       child: TextButton(
                         onPressed: () => Get.back(),
                         style: TextButton.styleFrom(
-                          backgroundColor: AppColor.fg,
+                          backgroundColor: AppColor.cell,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         child: Text(
                           'CLOSE',
-                          style: textStyleLabel().copyWith(color: AppColor.bg),
+                          style: textStyleLabel().copyWith(color: AppColor.fg),
                         ),
                       ),
                     ),
@@ -318,8 +375,8 @@ class TicTacToePage extends GetView<TicTacToeController> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
-              border: Border.all(color: AppColor.fg.withOpacity(0.4)),
-              borderRadius: BorderRadius.circular(8),
+              color: AppColor.cell,
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Text('$value', style: textStyleLabel()),
           ),

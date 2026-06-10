@@ -1,4 +1,5 @@
 import 'package:hive_ce/hive.dart';
+import 'package:tictactoe/feature/ticTacToe/domain/entity/game_enums.dart';
 
 
 class GameStatsModel extends HiveObject {
@@ -19,7 +20,12 @@ class GameStatsModel extends HiveObject {
   });
 
   static const String boxName = 'game_stats';
-  static const String recordKey = 'main';
+  static const String legacyRecordKey = 'main';
+  static const String onePlayerKey = 'one_player';
+  static const String twoPlayerKey = 'two_player';
+
+  static String keyForMode(GameMode mode) =>
+      mode == GameMode.onePlayer ? onePlayerKey : twoPlayerKey;
 }
 
 class GameStatsAdapter extends TypeAdapter<GameStatsModel> {

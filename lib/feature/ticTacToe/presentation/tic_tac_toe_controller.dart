@@ -30,13 +30,19 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
   final Rx<GameMode> mode = GameMode.onePlayer.obs;
   final Rx<Difficulty> difficulty = Difficulty.hard.obs;
 
-  // ── Session scores ──────────────────────────────────────────────────
-  final RxInt xScore = 0.obs;
-  final RxInt oScore = 0.obs;
-  final RxInt tieScore = 0.obs;
+  // ── Session scores (one set per mode) ───────────────────────────────
+  final Map<GameMode, _ModeSessionScores> _sessionScores = {
+    GameMode.onePlayer: _ModeSessionScores(),
+    GameMode.twoPlayer: _ModeSessionScores(),
+  };
 
-  // ── Persisted lifetime stats (Hive) ─────────────────────────────────
-  final Rx<GameStatsModel> stats = GameStatsModel().obs;
+  RxInt get xScore => _sessionScores[mode.value]!.x;
+  RxInt get oScore => _sessionScores[mode.value]!.o;
+  RxInt get tieScore => _sessionScores[mode.value]!.tie;
+
+  // ── Persisted lifetime stats (Hive, one record per mode) ────────────
+  final Rx<GameStatsModel> onePlayerStats = GameStatsModel().obs;
+  final Rx<GameStatsModel> twoPlayerStats = GameStatsModel().obs;
 
   // ── Internals ───────────────────────────────────────────────────────
   static const String _you = 'X';
@@ -75,11 +81,16 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _loadStats() async {
-    final result = await repository.getStats();
-    result.fold(
-          (failure) => stats.value = GameStatsModel(),
-          (data) => stats.value = data,
-    );
+    for (final gameMode in GameMode.values) {
+      final result = await repository.getStats(gameMode);
+      final target = gameMode == GameMode.onePlayer
+          ? onePlayerStats
+          : twoPlayerStats;
+      result.fold(
+        (failure) => target.value = GameStatsModel(),
+        (data) => target.value = data,
+      );
+    }
   }
 
   @override
@@ -89,7 +100,7 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
       analytics.sessionEnded(durationSeconds: seconds);
       if (_gameInProgress && !gameOver.value) {
         analytics.gameAbandoned(movesPlayed: _moveCount);
-        _persistStats(abandoned: true);
+        _persistStats(gameMode: mode.value, abandoned: true);
         _gameInProgress = false;
       }
     } else if (state == AppLifecycleState.resumed) {
@@ -301,30 +312,35 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
     );
 
     _persistStats(
-      win: onePlayer && winner == 'X',
-      loss: onePlayer && winner == 'O',
+      gameMode: mode.value,
+      win: winner == 'X',
+      loss: winner == 'O',
       tie: winner.isEmpty,
       durationSeconds: durationSeconds,
     );
   }
 
   Future<void> _persistStats({
+    required GameMode gameMode,
     bool win = false,
     bool loss = false,
     bool tie = false,
     bool abandoned = false,
     int durationSeconds = 0,
   }) async {
-    final s = stats.value;
+    final statsRx = gameMode == GameMode.onePlayer
+        ? onePlayerStats
+        : twoPlayerStats;
+    final s = statsRx.value;
     if (!abandoned) s.gamesPlayed += 1;
     if (win) s.wins += 1;
     if (loss) s.losses += 1;
     if (tie) s.ties += 1;
     if (abandoned) s.abandoned += 1;
     s.totalPlaySeconds += durationSeconds;
-    stats.value = s;
-    stats.refresh();
-    await repository.saveStats(s);
+    statsRx.value = s;
+    statsRx.refresh();
+    await repository.saveStats(gameMode, s);
   }
 
   // ── Settings changes ────────────────────────────────────────────────
@@ -380,4 +396,10 @@ class TicTacToeController extends GetxController with WidgetsBindingObserver {
     }
     return null;
   }
+}
+
+class _ModeSessionScores {
+  final RxInt x = 0.obs;
+  final RxInt o = 0.obs;
+  final RxInt tie = 0.obs;
 }

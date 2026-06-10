@@ -4,6 +4,7 @@ import 'package:lottie/lottie.dart';
 
 import 'package:tictactoe/config/app_colors.dart';
 import 'package:tictactoe/config/app_text_style.dart';
+import 'package:tictactoe/feature/ticTacToe/data/model/game_stats_model.dart';
 import 'package:tictactoe/feature/ticTacToe/domain/entity/game_enums.dart';
 import 'package:tictactoe/feature/ticTacToe/presentation/tic_tac_toe_controller.dart';
 
@@ -307,7 +308,6 @@ class TicTacToePage extends GetView<TicTacToeController> {
   }
 
   void _showStats(BuildContext context) {
-    final s = controller.stats.value;
     final width = MediaQuery.of(context).size.width;
 
     showDialog(
@@ -320,7 +320,7 @@ class TicTacToePage extends GetView<TicTacToeController> {
             width: width * 0.9,
             child: Padding(
               padding: const EdgeInsets.only(bottom: 16, left: 22, right: 22),
-              child: Column(
+              child: Obx(() => Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Padding(
@@ -329,12 +329,19 @@ class TicTacToePage extends GetView<TicTacToeController> {
                   ),
                   const Divider(height: 1),
                   const SizedBox(height: 8),
-                  _statRow('Games played', s.gamesPlayed),
-                  _statRow('Wins', s.wins),
-                  _statRow('Losses', s.losses),
-                  _statRow('Ties', s.ties),
-                  _statRow('Abandoned', s.abandoned),
-                  _statRow('Total time (sec)', s.totalPlaySeconds),
+                  _statsSection(
+                    title: '1 Player (You vs CPU)',
+                    stats: controller.onePlayerStats.value,
+                    winLabel: 'Wins (You)',
+                    lossLabel: 'Losses (CPU)',
+                  ),
+                  const SizedBox(height: 12),
+                  _statsSection(
+                    title: '2 Players (X vs O)',
+                    stats: controller.twoPlayerStats.value,
+                    winLabel: 'Wins (Player X)',
+                    lossLabel: 'Wins (Player O)',
+                  ),
                   const SizedBox(height: 12),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -357,11 +364,34 @@ class TicTacToePage extends GetView<TicTacToeController> {
                     ),
                   ),
                 ],
-              ),
+              )),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _statsSection({
+    required String title,
+    required GameStatsModel stats,
+    required String winLabel,
+    required String lossLabel,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Text(title, style: textStyleLabel()),
+        ),
+        _statRow('Games played', stats.gamesPlayed),
+        _statRow(winLabel, stats.wins),
+        _statRow(lossLabel, stats.losses),
+        _statRow('Ties', stats.ties),
+        _statRow('Abandoned', stats.abandoned),
+        _statRow('Total time (sec)', stats.totalPlaySeconds),
+      ],
     );
   }
 

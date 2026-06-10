@@ -4,6 +4,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:tictactoe/core/failure/failure.dart';
 import 'package:tictactoe/feature/ticTacToe/data/dataSource/game_local_data_source.dart';
 import 'package:tictactoe/feature/ticTacToe/data/model/game_stats_model.dart';
+import 'package:tictactoe/feature/ticTacToe/domain/entity/game_enums.dart';
 import 'package:tictactoe/feature/ticTacToe/domain/repository/tic_tac_toe_repository.dart';
 
 class TicTacToeRepositoryImplementation implements TicTacToeRepository {
@@ -12,9 +13,9 @@ class TicTacToeRepositoryImplementation implements TicTacToeRepository {
   TicTacToeRepositoryImplementation({required this.localDataSource});
 
   @override
-  Future<Either<Failure, GameStatsModel>> getStats() async {
+  Future<Either<Failure, GameStatsModel>> getStats(GameMode mode) async {
     try {
-      final stats = await localDataSource.getStats();
+      final stats = await localDataSource.getStats(mode);
       return Right(stats);
     } catch (error, stackTrace) {
       log('getStats failed: $error\n$stackTrace');
@@ -26,9 +27,9 @@ class TicTacToeRepositoryImplementation implements TicTacToeRepository {
   }
 
   @override
-  Future<Either<Failure, bool>> saveStats(GameStatsModel stats) async {
+  Future<Either<Failure, bool>> saveStats(GameMode mode, GameStatsModel stats) async {
     try {
-      await localDataSource.saveStats(stats);
+      await localDataSource.saveStats(mode, stats);
       return Right(true);
     } catch (error, stackTrace) {
       log('saveStats failed: $error\n$stackTrace');
